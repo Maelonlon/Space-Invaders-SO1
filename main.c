@@ -20,7 +20,7 @@
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
-	//adad
+	//penicottero
 	int  x; /* Coordinata x */
 	int  y; /* Coordinata y */
 	char c; /* Identificatore personaggio */
