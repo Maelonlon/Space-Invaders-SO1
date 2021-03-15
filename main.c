@@ -53,20 +53,20 @@ switch(pidAmici){
     _exit(2);
   case 0:
     close(p[0]);
-    //Astronave(p[1]);
+    Amici(p[1]);
   default:
-	pidNemici=fork();
-}
+		pidNemici=fork();
 
-switch(pidNemici){
-	case -1:
-    perror("Errore nell'esecuzione della fork.");
-    _exit(2);
-  case 0:
-    close(p[0]);
-    //Navicelle(p[1]);
-  default:
-	break;
+		switch(pidNemici){
+			case -1:
+    		perror("Errore nell'esecuzione della fork.");
+    		_exit(2);
+  		case 0:
+    		close(p[0]);
+    		Nemici(p[1]);
+  		default:
+				close(p[1]);
+		}
 }
 
   return 0;
