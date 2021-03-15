@@ -18,7 +18,6 @@
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
 #define DELAY  20000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
-#define
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
@@ -88,8 +87,10 @@ void Amici (int pipeout){
 
 	Amici.x= MAXX/2;   /*Coordinata iniziale X */
 	Amici.y= MAXY-1;   /* Coordinata iniziale Y */
-	Amici.c= 'o^o';
+	Amici.c= "o^o";
 	//strcpy(Astronave.c, "<");  /* Carattere Identificativo *
+	//Amici.c= 'o^o';
+	strcpy(Astronave.c, "<O>");  /* Carattere Identificativo */
 
 	int dimSprite = sizeof(Amici.c);
 
