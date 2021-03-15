@@ -18,13 +18,14 @@
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
 #define DELAY  20000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
+#define
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
 	//pllp
 	int  x; /* Coordinata x */
 	int  y; /* Coordinata y */
-	char c;//[3]; /* Identificatore personaggio sprite*/
+	char c[3]; /* Identificatore personaggio sprite*/
 }pos;
 
 void Nemici(int pipeout);
@@ -84,17 +85,16 @@ void Amici (int pipeout){
 	char c;
 
 	pos Amici;//, Disco;
-	//int dimSprite = sizeof(Astronave.c);
-
 
 	Amici.x= MAXX/2;   /*Coordinata iniziale X */
 	Amici.y= MAXY-1;   /* Coordinata iniziale Y */
-	Amici.c= '^';
+	Amici.c= 'o^o';
 	//strcpy(Astronave.c, "<");  /* Carattere Identificativo *
+
+	int dimSprite = sizeof(Amici.c);
 
 	/* Comunico le coordinate iniziali al processo padre */
 	write(pipeout, &Amici, sizeof(Amici));
-
 
 	/* Lettura dei tasti cursore */
 	while(true){
@@ -106,7 +106,7 @@ void Amici (int pipeout){
 			case SX: if(Amici.x>0) Amici.x -=1;
 			break;
 
-			case DX: if(Amici.x< MAXX-1) Amici.x +=1;
+			case DX: if(Amici.x< MAXX-dimSprite) Amici.x +=1;
 			break;
 
 		}
