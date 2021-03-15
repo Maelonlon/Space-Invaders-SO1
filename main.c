@@ -27,6 +27,10 @@ typedef struct{
 	char c;//[3]; /* Identificatore personaggio sprite*/
 }pos;
 
+void Nemici(int pipeout);
+void Amici(int pipeout);
+void AreaGioco(int pipein);
+
 int main(){
 
   int p[2];           /* Filedescriptor -> nome della pipe */
