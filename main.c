@@ -117,6 +117,64 @@ void Amici (int pipeout){
 
 }
 
+void Nemici (int pipeout){
+
+int direction=1;    /* Spostamento orizzontale */
+int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
+
+pos Astronave, Disco;
+
+Astronave.x= 0;   /*Coordinata iniziale X */
+Astronave.y= 1;   /* Coordinata iniziale Y */
+Astronave.c='=';  /* Carattere Identificativo *
+
+
+
+/* Comunico le coordinate iniziali al processo padre */
+write(pipeout, &Astronave, sizeof(Astronave));
+
+
+while(true){
+
+	/* Genero numero casuale tra 10 e 50 */
+	//value = 10 + random()%40;
+
+	/* Ad intervalli casuali abilita l'uscita di un disco volante */
+	//if(!(counter++%value)){
+
+	/* Imposto posizione x di partenza e carattere oggetto */
+	//Disco.x=Astronave.x;
+	//Disco.c='o';
+
+	/* Effettuo il percorso da y=2 a y=MAXY */
+	//for(Disco.y=2; Disco.y<=MAXY; Disco.y++){
+
+	/* Comunico le coordinate correnti al processo padre */
+	//write(pipeout,&Disco,sizeof(Disco));
+
+	/* Inserisco una pausa per rallentare il movimento */
+	//usleep(DELAY);
+	//}
+
+	/* Cancello ultima coordinata per evitare collisione */
+	//Disco.y = -1;
+	//write(pipeout,&Disco,sizeof(Disco));
+	//}
+
+	/* Genero coordinate per il moviemnto */
+	if(Astronave.x == MAXX-1) direction =-1;
+	if(Astronave.x==0)     direction =1;
+	Astronave.x = Astronave.x + (direction);
+
+
+	/* Comunico le coordinate correnti al processo padre*/
+	write(pipeout, &Astronave, sizeof(Astronave));
+	usleep(DELAY*2); /* Definisce quanto va veloce l'Astronave Madre */
+
+}
+
+}
+
 void AreaGioco (int pipein){
 
 pos Amici, Nemici, valore_letto;
