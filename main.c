@@ -6,7 +6,7 @@
 /*Librerie per la manipolazione dei processi */
 #include <sys/types.h>
 #include <sys/wait.h>
-//#include <string.h>
+#include <string.h>
 
 #define LIVELLO
 #define VITE
@@ -21,7 +21,6 @@
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
-	//pllp
 	int  x; /* Coordinata x */
 	int  y; /* Coordinata y */
 	char c[3]; /* Identificatore personaggio sprite*/
@@ -87,10 +86,10 @@ void Amici (int pipeout){
 
 	Amici.x= MAXX/2;   /*Coordinata iniziale X */
 	Amici.y= MAXY-1;   /* Coordinata iniziale Y */
-	Amici.c= "o^o";
-	//strcpy(Astronave.c, "<");  /* Carattere Identificativo *
-	//Amici.c= 'o^o';
-	strcpy(Astronave.c, "<O>");  /* Carattere Identificativo */
+	//Amici.c= "o^o";
+
+	strcpy(Amici.c, "<O>");  /* Carattere Identificativo */
+
 
 	int dimSprite = sizeof(Amici.c);
 
@@ -123,16 +122,19 @@ void Nemici (int pipeout){
 int direction=1;    /* Spostamento orizzontale */
 int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
 
-pos Astronave, Disco;
+pos Nemici;
 
-Astronave.x= 0;   /*Coordinata iniziale X */
-Astronave.y= 1;   /* Coordinata iniziale Y */
-Astronave.c='=';  /* Carattere Identificativo *
+Nemici.x= 0;   /*Coordinata iniziale X */
+Nemici.y= 1;   /* Coordinata iniziale Y */
+//Astronave.c='=';  /* Carattere Identificativo */
 
+strcpy(Nemici.c, "vOv");
+
+int dimSprite = sizeof(Nemici.c);
 
 
 /* Comunico le coordinate iniziali al processo padre */
-write(pipeout, &Astronave, sizeof(Astronave));
+write(pipeout, &Nemici, sizeof(Nemici));
 
 
 while(true){
@@ -163,13 +165,13 @@ while(true){
 	//}
 
 	/* Genero coordinate per il moviemnto */
-	if(Astronave.x == MAXX-1) direction =-1;
-	if(Astronave.x==0)     direction =1;
-	Astronave.x = Astronave.x + (direction);
+	if(Nemici.x >= MAXX-dimSprite) direction =-1;
+	if(Nemici.x==0)     direction =1;
+	Nemici.x = Nemici.x + (direction);
 
 
 	/* Comunico le coordinate correnti al processo padre*/
-	write(pipeout, &Astronave, sizeof(Astronave));
+	write(pipeout, &Nemici, sizeof(Nemici));
 	usleep(DELAY*2); /* Definisce quanto va veloce l'Astronave Madre */
 
 }
@@ -194,10 +196,10 @@ do{
 	read(pipein, &valore_letto, sizeof(valore_letto));
 
 	/* Astronave Madre */
-	if(valore_letto.c == '='){
+	if(strcmp(valore_letto.c, "vOv") == 0){
 
 		/* Cancello il precedente carattere visualizzato */
-		mvaddch(Nemici.y, Nemici.x,' ');
+		mvprintw(Nemici.y, Nemici.x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
 		Nemici=valore_letto;
@@ -213,9 +215,12 @@ do{
 	//}
 
 	/* Cannone Laser */
-	if(valore_letto.c == '^'){
+	if(strcmp(valore_letto.c, "<O>") == 0){
 		/* Cancello il precedente carattere visualizzato */
-		mvaddch(Amici.y, Amici.x,' ');
+		//mvaddch(Amici.y, Amici.x,' ');
+		//mvaddch(Amici.y, Amici.x+1,' ');
+		//mvaddch(Amici.y, Amici.x+2,' ');
+		mvprintw(Amici.y, Amici.x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
 		Amici=valore_letto;
@@ -223,7 +228,10 @@ do{
 
 
 	/* Visualizzo gli oggetti sulle coordinate correnti */
-	mvaddch(valore_letto.y, valore_letto.x, valore_letto.c);
+	//mvaddch(valore_letto.y, valore_letto.x, valore_letto.c[0]);
+	//mvaddch(valore_letto.y, valore_letto.x+1, valore_letto.c[1]);
+	//mvaddch(valore_letto.y, valore_letto.x+2, valore_letto.c[2]);
+	mvprintw(valore_letto.y, valore_letto.x, valore_letto.c);
 
 	/* Visualizzo valore scudo protettivo */
 	mvprintw(0,1,"Scudo: %d", scudo);
