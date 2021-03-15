@@ -66,8 +66,12 @@ switch(pidAmici){
     		Nemici(p[1]);
   		default:
 				close(p[1]);
+				AreaGioco(p[0]);
 		}
 }
+
+kill(pidNemici, 1);
+kill(pidAmici, 1);
 
 }
 
