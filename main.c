@@ -60,7 +60,7 @@ switch(pidAmici){
 		switch(pidNemici){
 			case -1:
     		perror("Errore nell'esecuzione della fork.");
-    		_exit(2);
+    		_exit(3);
   		case 0:
     		close(p[0]);
     		Nemici(p[1]);
@@ -69,7 +69,6 @@ switch(pidAmici){
 		}
 }
 
-  return 0;
 }
 
 void Amici (int pipeout){
