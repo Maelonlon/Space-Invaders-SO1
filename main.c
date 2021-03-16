@@ -26,6 +26,12 @@ typedef struct{
 	char c[3]; /* Identificatore personaggio sprite*/
 }pos;
 
+typedef struct{
+	int  x; /* Coordinata x */
+	int  y; /* Coordinata y */
+	char c; /* Identificatore personaggio sprite*/
+}pos_bullet;
+
 void Nemici(int pipeout);
 void Amici(int pipeout);
 void AreaGioco(int pipein);
@@ -123,6 +129,7 @@ int direction=1;    /* Spostamento orizzontale */
 int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
 
 pos Nemici;
+pos N_bullet;
 
 Nemici.x= 0;   /*Coordinata iniziale X */
 Nemici.y= 1;   /* Coordinata iniziale Y */
@@ -140,29 +147,30 @@ write(pipeout, &Nemici, sizeof(Nemici));
 while(true){
 
 	/* Genero numero casuale tra 10 e 50 */
-	//value = 10 + random()%40;
+	value = 10 + random()%40;
 
 	/* Ad intervalli casuali abilita l'uscita di un disco volante */
-	//if(!(counter++%value)){
+	if(!(counter++%value)){
 
 	/* Imposto posizione x di partenza e carattere oggetto */
-	//Disco.x=Astronave.x;
-	//Disco.c='o';
+	N_bullet.x=Nemici.x+1;
+	strcpy(N_bullet.c, " o ");
+
 
 	/* Effettuo il percorso da y=2 a y=MAXY */
-	//for(Disco.y=2; Disco.y<=MAXY; Disco.y++){
+	for(N_bullet.y=2; N_bullet.y<=MAXY; N_bullet.y++){
 
 	/* Comunico le coordinate correnti al processo padre */
-	//write(pipeout,&Disco,sizeof(Disco));
+	write(pipeout,&N_bullet,sizeof(N_bullet));
 
 	/* Inserisco una pausa per rallentare il movimento */
-	//usleep(DELAY);
-	//}
+	usleep(DELAY);
+	}
 
 	/* Cancello ultima coordinata per evitare collisione */
-	//Disco.y = -1;
-	//write(pipeout,&Disco,sizeof(Disco));
-	//}
+	N_bullet.y = -1;
+	write(pipeout,&N_bullet,sizeof(N_bullet));
+	}
 
 	/* Genero coordinate per il moviemnto */
 	if(Nemici.x >= MAXX-dimSprite) direction =-1;
@@ -174,13 +182,13 @@ while(true){
 	write(pipeout, &Nemici, sizeof(Nemici));
 	usleep(DELAY*2); /* Definisce quanto va veloce l'Astronave Madre */
 
+	}
 }
 
-}
 
 void AreaGioco (int pipein){
 
-pos Amici, Nemici, valore_letto;
+pos Amici, Nemici, N_bullet, valore_letto;
 int i=0, scudo =3, collision=0;
 
 
@@ -206,20 +214,17 @@ do{
 	}
 
 	/* Disco volante */
-	//if(valore_letto.c=='o'){
+	if(strcmp(valore_letto.c, " o ") == 0){
 		/* Cancello il precedente carattere visualizzato */
-	//	mvaddch(Disco.y, Disco.x,' ');
+		mvprintw(N_bullet.y, N_bullet.x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
-	//	Disco=valore_letto;
-	//}
+		N_bullet=valore_letto;
+	}
 
 	/* Cannone Laser */
 	if(strcmp(valore_letto.c, "<O>") == 0){
 		/* Cancello il precedente carattere visualizzato */
-		//mvaddch(Amici.y, Amici.x,' ');
-		//mvaddch(Amici.y, Amici.x+1,' ');
-		//mvaddch(Amici.y, Amici.x+2,' ');
 		mvprintw(Amici.y, Amici.x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
@@ -227,10 +232,7 @@ do{
 	}
 
 
-	/* Visualizzo gli oggetti sulle coordinate correnti */
-	//mvaddch(valore_letto.y, valore_letto.x, valore_letto.c[0]);
-	//mvaddch(valore_letto.y, valore_letto.x+1, valore_letto.c[1]);
-	//mvaddch(valore_letto.y, valore_letto.x+2, valore_letto.c[2]);
+	/* Visualizzo gli oggetti suDiscolle coordinate correnti */
 	mvprintw(valore_letto.y, valore_letto.x, valore_letto.c);
 
 	/* Visualizzo valore scudo protettivo */
