@@ -34,7 +34,7 @@ typedef struct{
 }pos_bullet;
 
 void Nemici(int pipeout);
-void Amici(int pipeout);
+void Amici(int* p);
 void AreaGioco(int pipein);
 void MissileDx(int pipein, pos Amici);
 void MissileSx(int pipein, pos Amici);
@@ -65,7 +65,7 @@ switch(pidAmici){
     _exit(2);
   case 0:
     close(p[0]);
-    Amici(p[1]);
+    Amici(p);
   default:
 		pidNemici=fork();
 
@@ -87,7 +87,7 @@ kill(pidAmici, 1);
 
 }
 
-void Amici (int pipeout){
+void Amici (int* p){
 
 	int pidMissileDx, pidMissileSx;
 
@@ -105,7 +105,8 @@ void Amici (int pipeout){
 	int dimSprite = sizeof(Amici.c);
 
 	/* Comunico le coordinate iniziali al processo padre */
-	write(pipeout, &Amici, sizeof(Amici));
+	close(p[0]);
+	write(p[1], &Amici, sizeof(Amici));
 
 
 	/* Lettura dei tasti cursore */
@@ -131,15 +132,19 @@ void Amici (int pipeout){
 						perror("Errore nell'esecuzione della fork Missile");
 						_exit(2);
 					case 0:
-						MissileDx(pipeout, Amici);
+					close(p[0]);
+						MissileDx(p[1], Amici);
+						break;
 					default:
 					pidMissileSx = fork();
+
 					switch(pidMissileSx){
 						case -1:
 							perror("Errore nell'esecuzione della fork Missile");
 							_exit(2);
 						case 0:
-							MissileSx(pipeout, Amici);
+						close(p[0]);
+							MissileSx(p[1], Amici);
 						default:
 							break;
 				}
@@ -147,7 +152,8 @@ void Amici (int pipeout){
 			}
 
 		/* Comunico al processo padre le coordinate */
-		write(pipeout, &Amici, sizeof(Amici));
+		close(p[0]);
+		write(p[1], &Amici, sizeof(Amici));
 	}
 
 }
