@@ -235,7 +235,7 @@ int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
 pos Nemici;
 pos N_bullet;
 
-Nemici.x= 0;   /*Coordinata iniziale X */
+Nemici.x= 1;   /*Coordinata iniziale X */
 Nemici.y= 1;   /* Coordinata iniziale Y */
 //Astronave.c='=';  /* Carattere Identificativo */
 
@@ -277,8 +277,14 @@ while(true){
 	}
 
 	/* Genero coordinate per il moviemnto */
-	if(Nemici.x >= MAXX-dimSprite) direction =-1;
-	if(Nemici.x==0)     direction =1;
+	if(Nemici.x >= MAXX-dimSprite){
+		Nemici.y++;
+		direction =-1;
+	}
+	if(Nemici.x==0){
+		Nemici.y++;
+		direction =1;
+	}
 	Nemici.x = Nemici.x + (direction);
 
 
