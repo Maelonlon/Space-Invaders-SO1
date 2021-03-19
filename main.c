@@ -118,6 +118,12 @@ void Amici (int* p){
 		switch(c=getch()){
 
 			/* Sull'asse delle x teniamo conto della dimensione dello sprite */
+			case UP: if(Amici.y>3) Amici.y -=1;
+			break;
+
+			case DW: if (Amici.y<MAXY-1) Amici.y +=1;
+			break;
+
 			case SX: if(Amici.x>0) Amici.x -=1;
 			break;
 
