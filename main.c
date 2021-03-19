@@ -15,9 +15,10 @@
 #define DW        66 /* Cursore sotto */
 #define SX        68 /* Cursore sinistra */
 #define DX        67 /* Cursore destra */
+#define SPACE			32
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
-#define DELAY  20000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
+#define DELAY  100000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
@@ -35,6 +36,8 @@ typedef struct{
 void Nemici(int pipeout);
 void Amici(int pipeout);
 void AreaGioco(int pipein);
+void MissileDx(int pipein, pos Amici);
+void MissileSx(int pipein, pos Amici);
 
 int main(){
 
@@ -58,7 +61,7 @@ pidAmici=fork(); /* Creazione del primo processo figlio Astronave Madre */
 
 switch(pidAmici){
   case -1:
-    perror("Errore nell'esecuzione della fork.");
+    perror("Errore nell'esecuzione della fork Amici");
     _exit(2);
   case 0:
     close(p[0]);
@@ -68,7 +71,7 @@ switch(pidAmici){
 
 		switch(pidNemici){
 			case -1:
-    		perror("Errore nell'esecuzione della fork.");
+    		perror("Errore nell'esecuzione della fork Nemici");
     		_exit(3);
   		case 0:
     		close(p[0]);
@@ -86,9 +89,11 @@ kill(pidAmici, 1);
 
 void Amici (int pipeout){
 
+	int pidMissileDx, pidMissileSx;
+
 	char c;
 
-	pos Amici;//, Disco;
+	pos Amici;
 
 	Amici.x= MAXX/2;   /*Coordinata iniziale X */
 	Amici.y= MAXY-1;   /* Coordinata iniziale Y */
@@ -102,8 +107,11 @@ void Amici (int pipeout){
 	/* Comunico le coordinate iniziali al processo padre */
 	write(pipeout, &Amici, sizeof(Amici));
 
+
 	/* Lettura dei tasti cursore */
 	while(true){
+
+
 
 		/* Il cannone laser può andare solo a destra e a sinistra  */
 		switch(c=getch()){
@@ -115,12 +123,87 @@ void Amici (int pipeout){
 			case DX: if(Amici.x< MAXX-dimSprite) Amici.x +=1;
 			break;
 
-		}
+			case SPACE:
+				pidMissileDx = fork();
+				pidMissileSx = fork();
+
+				switch(pidMissileDx){
+					case -1:
+						perror("Errore nell'esecuzione della fork Missile");
+						_exit(2);
+					case 0:
+						MissileDx(pipeout, Amici);
+					default:
+						break;
+				}
+				switch(pidMissileSx){
+					case -1:
+						perror("Errore nell'esecuzione della fork Missile");
+						_exit(2);
+					case 0:
+						MissileSx(pipeout, Amici);
+					default:
+						break;
+			}
+			}
 
 		/* Comunico al processo padre le coordinate */
 		write(pipeout, &Amici, sizeof(Amici));
 	}
+}
 
+void MissileSx (int pipeout, pos Amici){
+
+	pos Missile;
+
+	//while (true){
+
+		strcpy(Missile.c, " \\ ");
+		Missile.x = Amici.x;
+		Missile.y = Amici.y-1;
+
+		for(Missile.y=Amici.y-1, Missile.x=Amici.x; Missile.y>=1 || Missile.x>=0; Missile.y-- && Missile.x--){
+		//for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
+
+		/* Comunico le coordinate correnti al processo padre */
+		write(pipeout,&Missile,sizeof(Missile));
+
+		/* Inserisco una pausa per rallentare il movimento */
+		usleep(DELAY);
+		}
+
+		/* Cancello ultima coordinata per evitare collisione */
+		Missile.y = -1;
+		write(pipeout,&Missile,sizeof(Missile));
+
+	//}
+}
+
+void MissileDx (int pipeout, pos Amici){
+
+	pos Missile;
+
+	//while (true){
+
+		strcpy(Missile.c, " / ");
+		Missile.x = Amici.x;
+		Missile.y = Amici.y-1;
+
+		for(Missile.y=Amici.y-1, Missile.x=Amici.x+1; Missile.y>=1 || Missile.x>=0; Missile.y-- && Missile.x++){
+		//for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
+
+		/* Comunico le coordinate correnti al processo padre */
+		write(pipeout,&Missile,sizeof(Missile));
+
+		/* Inserisco una pausa per rallentare il movimento */
+		usleep(DELAY);
+		}
+
+		/* Cancello ultima coordinata per evitare collisione */
+		Missile.y = -1;
+		write(pipeout,&Missile,sizeof(Missile));
+
+	//}
 }
 
 void Nemici (int pipeout){
@@ -188,7 +271,7 @@ while(true){
 
 void AreaGioco (int pipein){
 
-pos Amici, Nemici, N_bullet, valore_letto;
+pos Amici, MissileDx, MissileSx, Nemici, N_bullet, valore_letto;
 int i=0, scudo =3, collision=0;
 
 
@@ -229,6 +312,20 @@ do{
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
 		Amici=valore_letto;
+	}
+
+	if(strcmp(valore_letto.c, " / ") == 0){
+
+		mvprintw(MissileDx.y, MissileDx.x, "   ");
+
+		MissileDx = valore_letto;
+	}
+
+	if(strcmp(valore_letto.c, " \\ ") == 0){
+
+		mvprintw(MissileSx.y, MissileSx.x, "   ");
+
+		MissileSx = valore_letto;
 	}
 
 
