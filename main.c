@@ -132,8 +132,10 @@ void Amici (int* p){
 						perror("Errore nell'esecuzione della fork Missile");
 						_exit(2);
 					case 0:
-					close(p[0]);
+						close(p[0]);
 						MissileDx(p[1], Amici);
+						pidMissileDx = getpid();
+						kill(pidMissileDx, 1);
 						break;
 					default:
 					pidMissileSx = fork();
@@ -143,12 +145,15 @@ void Amici (int* p){
 							perror("Errore nell'esecuzione della fork Missile");
 							_exit(2);
 						case 0:
-						close(p[0]);
+							close(p[0]);
 							MissileSx(p[1], Amici);
+							pidMissileSx = getpid();
+							kill(pidMissileSx, 1);
 						default:
 							break;
 				}
 				}
+
 			}
 
 		/* Comunico al processo padre le coordinate */
