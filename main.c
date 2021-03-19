@@ -124,9 +124,8 @@ void Amici (int pipeout){
 			break;
 
 			case SPACE:
-				pidMissileDx = fork();
-				pidMissileSx = fork();
 
+				pidMissileDx = fork();
 				switch(pidMissileDx){
 					case -1:
 						perror("Errore nell'esecuzione della fork Missile");
@@ -134,22 +133,23 @@ void Amici (int pipeout){
 					case 0:
 						MissileDx(pipeout, Amici);
 					default:
-						break;
+					pidMissileSx = fork();
+					switch(pidMissileSx){
+						case -1:
+							perror("Errore nell'esecuzione della fork Missile");
+							_exit(2);
+						case 0:
+							MissileSx(pipeout, Amici);
+						default:
+							break;
 				}
-				switch(pidMissileSx){
-					case -1:
-						perror("Errore nell'esecuzione della fork Missile");
-						_exit(2);
-					case 0:
-						MissileSx(pipeout, Amici);
-					default:
-						break;
-			}
+				}
 			}
 
 		/* Comunico al processo padre le coordinate */
 		write(pipeout, &Amici, sizeof(Amici));
 	}
+
 }
 
 void MissileSx (int pipeout, pos Amici){
@@ -159,22 +159,24 @@ void MissileSx (int pipeout, pos Amici){
 	//while (true){
 
 		strcpy(Missile.c, " \\ ");
+		//Missile.x = Amici.x;
+		//Missile.y = Amici.y-1;
+
+		//for(Missile.y=Amici.y-1, Missile.x=Amici.x; Missile.y>=2; Missile.y-- && Missile.x--){
 		Missile.x = Amici.x;
-		Missile.y = Amici.y-1;
-
-		for(Missile.y=Amici.y-1, Missile.x=Amici.x; Missile.y>=1 || Missile.x>=0; Missile.y-- && Missile.x--){
-		//for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
-
+		for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
 		/* Comunico le coordinate correnti al processo padre */
 		write(pipeout,&Missile,sizeof(Missile));
 
 		/* Inserisco una pausa per rallentare il movimento */
 		usleep(DELAY);
+		Missile.x--;
 		}
 
 		/* Cancello ultima coordinata per evitare collisione */
 		Missile.y = -1;
 		write(pipeout,&Missile,sizeof(Missile));
+
 
 	//}
 }
@@ -186,17 +188,19 @@ void MissileDx (int pipeout, pos Amici){
 	//while (true){
 
 		strcpy(Missile.c, " / ");
-		Missile.x = Amici.x;
-		Missile.y = Amici.y-1;
+		//Missile.x = Amici.x;
+		//Missile.y = Amici.y-1;
 
-		for(Missile.y=Amici.y-1, Missile.x=Amici.x+1; Missile.y>=1 || Missile.x>=0; Missile.y-- && Missile.x++){
-		//for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
+		//for(Missile.y=Amici.y-1, Missile.x=Amici.x+1; Missile.y>=2; Missile.y-- && Missile.x++){
+		Missile.x = Amici.x+1;
+		for(Missile.y=Amici.y-1; Missile.y>=1; Missile.y--){
 
 		/* Comunico le coordinate correnti al processo padre */
 		write(pipeout,&Missile,sizeof(Missile));
 
 		/* Inserisco una pausa per rallentare il movimento */
 		usleep(DELAY);
+		Missile.x++;
 		}
 
 		/* Cancello ultima coordinata per evitare collisione */
