@@ -19,11 +19,13 @@
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
 #define DELAY  50000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
+#define N_NEMICI	 5
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
 	int  x; /* Coordinata x */
 	int  y; /* Coordinata y */
+	int	id;
 	char c[3]; /* Identificatore personaggio sprite*/
 }pos;
 
@@ -33,7 +35,7 @@ typedef struct{
 	char c; /* Identificatore personaggio sprite*/
 }pos_bullet;
 
-void Nemici(int* p);
+void Nemici(int* p, int id);
 void Amici(int* p);
 void AreaGioco(int pipein);
 void MissileDx(int pipeout, pos Amici);
@@ -44,7 +46,8 @@ int main(){
 
   int p[2];           /* Filedescriptor -> nome della pipe */
   int pidAmici;   /* Pid processo figlio Astronave */
-	int pidNemici;		//Pid processo figlio Navicelle Nemiche
+	int pidNemici[N_NEMICI];		//Pid processo figlio Navicelle Nemiche
+	int i;
 
   initscr();         /* Inizializza schermo di output */
   noecho();          /* Imposta modalita' da tastiera */
@@ -58,32 +61,43 @@ if(pipe(p)==-1){
 	_exit(1);
 }
 
-pidAmici=fork(); /* Creazione del primo processo figlio Astronave Madre */
+ /* Creazione del primo processo figlio Astronave Madre */
 
-switch(pidAmici){
+switch(pidAmici=fork()){
   case -1:
     perror("Errore nell'esecuzione della fork Amici");
     _exit(2);
   case 0:
     close(p[0]);
     Amici(p);
+		_exit(0);
   default:
-		pidNemici=fork();
-
-		switch(pidNemici){
-			case -1:
-    		perror("Errore nell'esecuzione della fork Nemici");
-    		_exit(3);
-  		case 0:
-    		close(p[0]);
-    		Nemici(p);
-  		default:
-				close(p[1]);
-				AreaGioco(p[0]);
-		}
+	break;
 }
 
-kill(pidNemici, 1);
+for(i=0; i<N_NEMICI; i++){
+	usleep(DELAY*10);
+
+	switch(pidNemici[i]=fork()){
+		case -1:
+  		perror("Errore nell'esecuzione della fork Nemici");
+  		_exit(3);
+		case 0:
+  		close(p[0]);
+  		Nemici(p, i+1);
+			_exit(0);
+		default:
+			break;
+	}
+}
+
+
+close(p[1]);
+AreaGioco(p[0]);
+
+for(i=0; i<N_NEMICI; i++){
+kill(pidNemici[i], 1);
+}
 kill(pidAmici, 1);
 
 }
@@ -228,7 +242,7 @@ void MissileDx (int pipeout, pos Amici){
 	//}
 }
 
-void Nemici (int *p){
+void Nemici (int *p, int id){
 
 int direction=1;    /* Spostamento orizzontale */
 int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
@@ -239,6 +253,7 @@ pos Nemici;
 
 Nemici.x= 1;   /*Coordinata iniziale X */
 Nemici.y= 1;   /* Coordinata iniziale Y */
+Nemici.id=id;
 //Astronave.c='=';  /* Carattere Identificativo */
 
 strcpy(Nemici.c, "vOv");
@@ -247,6 +262,7 @@ int dimSprite = sizeof(Nemici.c);
 
 
 /* Comunico le coordinate iniziali al processo padre */
+
 write(p[1], &Nemici, sizeof(Nemici));
 
 
@@ -324,7 +340,7 @@ void Bomba (int pipeout, pos Nemici){
 
 void AreaGioco (int pipein){
 
-pos Amici, MissileDx, MissileSx, Nemici, Bomba, valore_letto;
+pos Amici, MissileDx, MissileSx, Nemici[N_NEMICI], Bomba, valore_letto;
 int i=0, scudo =3, collision=0;
 
 
@@ -340,14 +356,19 @@ do{
 	read(pipein, &valore_letto, sizeof(valore_letto));
 
 	/* Astronave Madre */
-	if(strcmp(valore_letto.c, "vOv") == 0){
+	for(i=0; i<N_NEMICI+1; i++){
+	if(strcmp(valore_letto.c, "vOv") == 0 && valore_letto.id == i){
 
 		/* Cancello il precedente carattere visualizzato */
-		mvprintw(Nemici.y, Nemici.x,"   ");
+		mvprintw(Nemici[i].y, Nemici[i].x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
-		Nemici=valore_letto;
+		Nemici[i]=valore_letto;
 	}
+
+}
+
+
 
 	/* Disco volante */
 	if(strcmp(valore_letto.c, " o ") == 0){
