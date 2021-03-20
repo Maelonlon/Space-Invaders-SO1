@@ -1,2 +1,2 @@
 play: main.c
-	gcc -o play main.c -lncurses
+	gcc main.c -o play -lncurses

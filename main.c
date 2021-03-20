@@ -18,7 +18,7 @@
 #define SPACE			32
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
-#define DELAY  100000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
+#define DELAY  50000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
@@ -33,11 +33,12 @@ typedef struct{
 	char c; /* Identificatore personaggio sprite*/
 }pos_bullet;
 
-void Nemici(int pipeout);
+void Nemici(int* p);
 void Amici(int* p);
 void AreaGioco(int pipein);
-void MissileDx(int pipein, pos Amici);
-void MissileSx(int pipein, pos Amici);
+void MissileDx(int pipeout, pos Amici);
+void MissileSx(int pipeout, pos Amici);
+void Bomba(int pipeout, pos Nemici);
 
 int main(){
 
@@ -75,7 +76,7 @@ switch(pidAmici){
     		_exit(3);
   		case 0:
     		close(p[0]);
-    		Nemici(p[1]);
+    		Nemici(p);
   		default:
 				close(p[1]);
 				AreaGioco(p[0]);
@@ -227,13 +228,14 @@ void MissileDx (int pipeout, pos Amici){
 	//}
 }
 
-void Nemici (int pipeout){
+void Nemici (int *p){
 
 int direction=1;    /* Spostamento orizzontale */
 int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
+int pidBomba;
 
 pos Nemici;
-pos N_bullet;
+//pos Bomba;
 
 Nemici.x= 1;   /*Coordinata iniziale X */
 Nemici.y= 1;   /* Coordinata iniziale Y */
@@ -245,7 +247,7 @@ int dimSprite = sizeof(Nemici.c);
 
 
 /* Comunico le coordinate iniziali al processo padre */
-write(pipeout, &Nemici, sizeof(Nemici));
+write(p[1], &Nemici, sizeof(Nemici));
 
 
 while(true){
@@ -256,25 +258,22 @@ while(true){
 	/* Ad intervalli casuali abilita l'uscita di un disco volante */
 	if(!(counter++%value)){
 
-	/* Imposto posizione x di partenza e carattere oggetto */
-	N_bullet.x=Nemici.x+1;
-	strcpy(N_bullet.c, " o ");
-
-
-	/* Effettuo il percorso da y=2 a y=MAXY */
-	for(N_bullet.y=2; N_bullet.y<=MAXY; N_bullet.y++){
-
-	/* Comunico le coordinate correnti al processo padre */
-	write(pipeout,&N_bullet,sizeof(N_bullet));
-
-	/* Inserisco una pausa per rallentare il movimento */
-	usleep(DELAY);
+		pidBomba = fork();
+		switch(pidBomba){
+			case -1:
+				perror("Errore nell'esecuzione della fork Bomba");
+				_exit(2);
+			case 0:
+				close(p[0]);
+				Bomba(p[1], Nemici);
+				pidBomba = getpid();
+				kill(pidBomba, 1);
+				break;
+			default:
+			break;
+		}
 	}
 
-	/* Cancello ultima coordinata per evitare collisione */
-	N_bullet.y = -1;
-	write(pipeout,&N_bullet,sizeof(N_bullet));
-	}
 
 	/* Genero coordinate per il moviemnto */
 	if(Nemici.x >= MAXX-dimSprite){
@@ -289,16 +288,43 @@ while(true){
 
 
 	/* Comunico le coordinate correnti al processo padre*/
-	write(pipeout, &Nemici, sizeof(Nemici));
+	write(p[1], &Nemici, sizeof(Nemici));
 	usleep(DELAY*2); /* Definisce quanto va veloce l'Astronave Madre */
 
-	}
+
 }
+}
+
+void Bomba (int pipeout, pos Nemici){
+
+	pos Bomba;
+
+	/* Imposto posizione x di partenza e carattere oggetto */
+	Bomba.x=Nemici.x;
+	strcpy(Bomba.c, " o ");
+
+
+	/* Effettuo il percorso da y=2 a y=MAXY */
+	for(Bomba.y=Nemici.y+1; Bomba.y<=MAXY; Bomba.y++){
+
+	/* Comunico le coordinate correnti al processo padre */
+	write(pipeout,&Bomba,sizeof(Bomba));
+
+	/* Inserisco una pausa per rallentare il movimento */
+	usleep(DELAY);
+	}
+
+	/* Cancello ultima coordinata per evitare collisione */
+	Bomba.y = -1;
+	write(pipeout,&Bomba,sizeof(Bomba));
+	}
+
+
 
 
 void AreaGioco (int pipein){
 
-pos Amici, MissileDx, MissileSx, Nemici, N_bullet, valore_letto;
+pos Amici, MissileDx, MissileSx, Nemici, Bomba, valore_letto;
 int i=0, scudo =3, collision=0;
 
 
@@ -306,7 +332,7 @@ int i=0, scudo =3, collision=0;
 	mvprintw(0,1,"Scudo: %d", scudo);
 
 
-/* Il ciclo si ripete fino a quando collision !=1 */
+/* Il ciclo si ripete fino a quando collision 	!=1 */
 do{
 
 
@@ -326,10 +352,10 @@ do{
 	/* Disco volante */
 	if(strcmp(valore_letto.c, " o ") == 0){
 		/* Cancello il precedente carattere visualizzato */
-		mvprintw(N_bullet.y, N_bullet.x,"   ");
+		mvprintw(Bomba.y, Bomba.x,"   ");
 
 		/* Aggiorno le coordinate realtive alla nuova posizione */
-		N_bullet=valore_letto;
+		Bomba=valore_letto;
 	}
 
 	/* Cannone Laser */
