@@ -19,28 +19,20 @@
 #define MAXX      80 /* Dimensione dello schermo di output(colonne) */
 #define MAXY      24 /* Dimensione dello schermo di output (righe) */
 #define DELAY  50000 /* Ritardo del movimento delle navicelle nemiche (da adattare) */
-#define N_NEMICI	 3
-#define N_MISSILI  2
-
+#define N_NEMICI	 10
 
 /* Struttura adoperata per veicolare le coordinate */
 typedef struct{
 	int  x; /* Coordinata x */
 	int  y; /* Coordinata y */
 	int	id;
-	char c[3]; /* Identificatore personaggio sprite*/
+	char s[4];  //sprite
+	char c;			//bullet
 }pos;
 
-typedef struct{
-	int  x; /* Coordinata x */
-	int  y; /* Coordinata y */
-	int	id;
-	char c; /* Identificatore personaggio sprite*/
-}pos_bullet;
-
-void Nemici(int pipeout, int* p_bullet, int id);
-void Amici(int pipeout, int* p_bullet);
-void AreaGioco(int pipein, int pipein_bullet);
+void Nemici(int* p, int id);
+void Amici(int* p);
+void AreaGioco(int pipein);
 void MissileDx(int pipeout, pos Amici);
 void MissileSx(int pipeout, pos Amici);
 void Bomba(int pipeout, pos Nemici);
@@ -48,7 +40,6 @@ void Bomba(int pipeout, pos Nemici);
 int main(){
 
   int p[2];           /* Filedescriptor -> nome della pipe */
-	int p_bullet[2];
   int pidAmici;   /* Pid processo figlio Astronave */
 	int pidNemici[N_NEMICI];		//Pid processo figlio Navicelle Nemiche
 	int i;
@@ -59,61 +50,56 @@ int main(){
 
   srand(time(NULL)); /* Inizializza seme generatore di passi casuali */
 
-  	/* Creazione della pipe e controllo errori invocazione */
-	if(pipe(p)==-1 || pipe(p_bullet)==-1){
-		perror("Errore nella creazione della pipe!");
-		_exit(1);
-	}
-
+  /* Creazione della pipe e controllo errori invocazione */
+if(pipe(p)==-1){
+	perror("Errore nella creazione della pipe!");
+	_exit(1);
+}
 
  /* Creazione del primo processo figlio Astronave Madre */
 
-	switch(pidAmici=fork()){
-  	case -1:
-    	perror("Errore nell'esecuzione della fork Amici");
-    	_exit(2);
-  	case 0:
-    	close(p[0]);
-			close(p_bullet[0]);
-    	Amici(p[1], p_bullet);
-			_exit(0);
-  	default:
-		break;
-	}
-
-	for(i=0; i<N_NEMICI; i++){
-		usleep(DELAY*10);
-
-		switch(pidNemici[i]=fork()){
-			case -1:
-  			perror("Errore nell'esecuzione della fork Nemici");
-  			_exit(3);
-			case 0:
-  			close(p[0]);
-  			Nemici(p[1], p_bullet, i+1);
-				_exit(0);
-			default:
-				break;
-		}
-	}
-
-
-	close(p[1]);
-	close(p_bullet[1]);
-	AreaGioco(p[0], p_bullet[0]);
-
-	for(i=0; i<N_NEMICI; i++){
-		kill(pidNemici[i], 1);
-		}
-	kill(pidAmici, 1);
-
-	return 0;
+switch(pidAmici=fork()){
+  case -1:
+    perror("Errore nell'esecuzione della fork Amici");
+    _exit(2);
+  case 0:
+    close(p[0]);
+    Amici(p);
+		_exit(0);
+  default:
+	break;
 }
 
-void Amici (int pipeout, int* p_bullet){
+for(i=0; i<N_NEMICI; i++){
+	usleep(DELAY*10);
+
+	switch(pidNemici[i]=fork()){
+		case -1:
+  		perror("Errore nell'esecuzione della fork Nemici");
+  		_exit(3);
+		case 0:
+  		close(p[0]);
+  		Nemici(p, i+1);
+			_exit(0);
+		default:
+			break;
+	}
+}
+
+
+close(p[1]);
+AreaGioco(p[0]);
+
+for(i=0; i<N_NEMICI; i++){
+kill(pidNemici[i], 1);
+}
+kill(pidAmici, 1);
+
+}
+
+void Amici (int* p){
 
 	int pidMissileDx, pidMissileSx;
-	int counter=0;
 
 	char c;
 
@@ -121,20 +107,23 @@ void Amici (int pipeout, int* p_bullet){
 
 	Amici.x= MAXX/2;   /*Coordinata iniziale X */
 	Amici.y= MAXY-1;   /* Coordinata iniziale Y */
-	Amici.id = 0;
 	//Amici.c= "o^o";
 
-	strcpy(Amici.c, "<O>");  /* Carattere Identificativo */
+	strcpy(Amici.s, "<O>");  /* Carattere Identificativo */
+	Amici.c = ' ';
+
 
 	int dimSprite = sizeof(Amici.c);
 
 	/* Comunico le coordinate iniziali al processo padre */
+	close(p[0]);
+	write(p[1], &Amici, sizeof(Amici));
 
-	write(pipeout, &Amici, sizeof(Amici));
-	//int dimSprite = sizeof(Amici.c);
 
 	/* Lettura dei tasti cursore */
 	while(true){
+
+
 
 		/* Il cannone laser può andare solo a destra e a sinistra  */
 		switch(c=getch()){
@@ -154,59 +143,51 @@ void Amici (int pipeout, int* p_bullet){
 
 			case SPACE:
 
-				if(counter < N_MISSILI){
-					counter++;
-					pidMissileDx = fork();
-
+				pidMissileDx = fork();
 				switch(pidMissileDx){
 					case -1:
 						perror("Errore nell'esecuzione della fork Missile");
 						_exit(2);
-
 					case 0:
-						close(p_bullet[0]);
-						MissileDx(p_bullet[1], Amici);
+						close(p[0]);
+						MissileDx(p[1], Amici);
 						pidMissileDx = getpid();
 						kill(pidMissileDx, 1);
 						break;
-
 					default:
-						pidMissileSx = fork();
+					pidMissileSx = fork();
 
-						switch(pidMissileSx){
-							case -1:
-								perror("Errore nell'esecuzione della fork Missile");
-								_exit(2);
-								case 0:
-								close(p_bullet[0]);
-								MissileSx(p_bullet[1], Amici);
-								pidMissileSx = getpid();
-								kill(pidMissileSx, 1);
-
-							default:
-								counter--;
-								break;
+					switch(pidMissileSx){
+						case -1:
+							perror("Errore nell'esecuzione della fork Missile");
+							_exit(2);
+						case 0:
+							close(p[0]);
+							MissileSx(p[1], Amici);
+							pidMissileSx = getpid();
+							kill(pidMissileSx, 1);
+						default:
+							break;
 				}
 				}
 
-			}
-
-			break;
 			}
 
 		/* Comunico al processo padre le coordinate */
-		write(pipeout, &Amici, sizeof(Amici));
+		close(p[0]);
+		write(p[1], &Amici, sizeof(Amici));
 	}
 
 }
 
 void MissileSx (int pipeout, pos Amici){
 
-	pos_bullet Missile;
+	pos Missile;
 
 	//while (true){
 
 		Missile.c = '\\';
+		Missile.s[0] = ' ';
 		//Missile.x = Amici.x;
 		//Missile.y = Amici.y-1;
 
@@ -231,11 +212,12 @@ void MissileSx (int pipeout, pos Amici){
 
 void MissileDx (int pipeout, pos Amici){
 
-	pos_bullet Missile;
+	pos Missile;
 
 	//while (true){
 
 		Missile.c = '/';
+		Missile.s[0] = ' ';
 		//Missile.x = Amici.x;
 		//Missile.y = Amici.y-1;
 
@@ -258,7 +240,7 @@ void MissileDx (int pipeout, pos Amici){
 	//}
 }
 
-void Nemici(int pipeout, int* p_bullet, int id){
+void Nemici (int *p, int id){
 
 int direction=1;    /* Spostamento orizzontale */
 int counter=0, value=0; /* Contatore e intervallo per uscita disco volante */
@@ -269,16 +251,19 @@ pos Nemici;
 
 Nemici.x= 1;   /*Coordinata iniziale X */
 Nemici.y= 1;   /* Coordinata iniziale Y */
-Nemici.id=id;	 //Astronave.c='=';  /* Carattere Identificativo */
+Nemici.id=id;
+//Astronave.c='=';  /* Carattere Identificativo */
 
-strcpy(Nemici.c, "vOv");
+strcpy(Nemici.s, "vOv");
+Nemici.c = ' ';
 
 int dimSprite = sizeof(Nemici.c);
 
 
 /* Comunico le coordinate iniziali al processo padre */
 
-write(pipeout, &Nemici, sizeof(Nemici));
+write(p[1], &Nemici, sizeof(Nemici));
+
 
 while(true){
 
@@ -294,8 +279,8 @@ while(true){
 				perror("Errore nell'esecuzione della fork Bomba");
 				_exit(2);
 			case 0:
-				close(p_bullet[0]);
-				Bomba(p_bullet[1], Nemici);
+				close(p[0]);
+				Bomba(p[1], Nemici);
 				pidBomba = getpid();
 				kill(pidBomba, 1);
 				break;
@@ -318,7 +303,7 @@ while(true){
 
 
 	/* Comunico le coordinate correnti al processo padre*/
-	write(pipeout, &Nemici, sizeof(Nemici));
+	write(p[1], &Nemici, sizeof(Nemici));
 	usleep(DELAY*2); /* Definisce quanto va veloce l'Astronave Madre */
 
 
@@ -327,12 +312,13 @@ while(true){
 
 void Bomba (int pipeout, pos Nemici){
 
-	pos_bullet Bomba;
+	pos Bomba;
 
 	/* Imposto posizione x di partenza e carattere oggetto */
 	Bomba.x=Nemici.x+1;
 	Bomba.id=Nemici.id;
 	Bomba.c = 'o';
+	Bomba.s[0] = ' ';
 
 
 	/* Effettuo il percorso da y=2 a y=MAXY */
@@ -352,12 +338,11 @@ void Bomba (int pipeout, pos Nemici){
 
 
 
-void AreaGioco (int pipein, int pipein_bullet){
 
-pos Amici, Nemici[N_NEMICI], valore_letto;
-pos_bullet MissileDx, MissileSx, Bomba[N_NEMICI], valore_letto_bullet;
-int i=0, scudo =3, collision=0, j, hit=0;
-int dimSprite = sizeof(Amici.c);
+void AreaGioco (int pipein){
+
+pos Amici, MissileDx, MissileSx, Nemici[N_NEMICI], Bomba[N_NEMICI], valore_letto;
+int i=0, scudo =3, collision=0;
 
 
 /* Visualizzo valore scudo iniziale del cannone laser */
@@ -370,34 +355,36 @@ do{
 
 	/* Leggo dalla pipe */
 	read(pipein, &valore_letto, sizeof(valore_letto));
-	read(pipein_bullet, &valore_letto_bullet, sizeof(valore_letto_bullet));
 
-	/* Nemici */
-	for(i=0; i<N_NEMICI+1; i++){
-	if(strcmp(valore_letto.c, "vOv") == 0 && valore_letto.id == i){
+	/* Astronave Madre */
+	for(i=0; i<N_NEMICI; i++){
+		if(strcmp(valore_letto.s, "vOv") == 0 && valore_letto.id == i+1){
 
-		/* Cancello il precedente carattere visualizzato */
-		mvprintw(Nemici[i].y, Nemici[i].x,"   ");
+		//Cancello il precedente carattere visualizzato
+			mvprintw(Nemici[i].y, Nemici[i].x,"   ");
 
-		/* Aggiorno le coordinate realtive alla nuova posizione */
-		Nemici[i]=valore_letto;
+		// Aggiorno le coordinate realtive alla nuova posizione
+			Nemici[i]=valore_letto;
+		}
+
 	}
-}
 
 
-	/* Bomba */
+
+	// Bomba
 	for(i=0; i<N_NEMICI+1; i++){
-		if(valore_letto_bullet.c == 'o'  && valore_letto_bullet.id == i){
-			/* Cancello il precedente carattere visualizzato */
+		if(valore_letto.c == 'o'  && valore_letto.id == i+1){
+			// Cancello il precedente carattere visualizzato
 			mvaddch(Bomba[i].y, Bomba[i].x,' ');
 
-			/* Aggiorno le coordinate realtive alla nuova posizione */
-			Bomba[i]=valore_letto_bullet;
+
+			// Aggiorno le coordinate realtive alla nuova posizione
+			Bomba[i]=valore_letto;
 		}
 	}
 
-	/* Navicella */
-	if(strcmp(valore_letto.c, "<O>") == 0){
+	/* Cannone Laser */
+	if(strcmp(valore_letto.s, "<O>") == 0){
 		/* Cancello il precedente carattere visualizzato */
 		mvprintw(Amici.y, Amici.x,"   ");
 
@@ -405,24 +392,27 @@ do{
 		Amici=valore_letto;
 	}
 
-	if(valore_letto_bullet.c == '/'){
+	if(valore_letto.c == '/'){
 
 		mvaddch(MissileDx.y, MissileDx.x, ' ');
 
-		MissileDx = valore_letto_bullet;
+		MissileDx = valore_letto;
 	}
 
-	if(valore_letto_bullet.c == '\\'){
+	if(valore_letto.c == '\\'){
 
 		mvaddch(MissileSx.y, MissileSx.x, ' ');
 
-		MissileSx = valore_letto_bullet;
+		MissileSx = valore_letto;
 	}
 
 
 	/* Visualizzo gli oggetti suDiscolle coordinate correnti */
-	mvprintw(valore_letto.y, valore_letto.x, valore_letto.c);
-	mvaddch(valore_letto_bullet.y, valore_letto_bullet.x, valore_letto_bullet.c);
+	if(valore_letto.s[0] != ' '){
+		mvprintw(valore_letto.y, valore_letto.x, valore_letto.s);
+	} else {
+		mvaddch(valore_letto.y, valore_letto.x, valore_letto.c);
+	}
 
 	/* Visualizzo valore scudo protettivo */
 	mvprintw(0,1,"Scudo: %d", scudo);
@@ -433,20 +423,15 @@ do{
 	/* Aggiorno lo schermo di output per visualizzare le modifiche */
 	refresh();
 
-	/* Segnalo collisione CannoneLaser/DiscoVolante, con meccanismo per evitare il rilevamento multiplo della stessa collisione*/
-	/*for(i=0; i<N_NEMICI+1; i++){
-		for(j=0; j<dimSprite; j++){
-			if(Bomba[i].x == (Amici.x)+j && Bomba[i].y == (Amici.y)+j){
-				//if(Laser.x < MAXX) Laser.x++; else Laser.x--;
-				mvaddch(Amici.y, (Amici.x)+j, Amici.c[j]); // Ridisegno cannone laser colpito
-				hit=1;
-			}
-		}
-	}
-	//if(hit==1) scudo--;
+	/* Segnalo collisione CannoneLaser/DiscoVolante, con meccanismo per evitare il rilevamento multiplo della stessa collisine*/
+	//if(Laser.x == Disco.x && Laser.y == Disco.y){
+	//if(Laser.x < MAXX) Laser.x++; else Laser.x--;
+	//mvprintw(Laser.y, Laser.x, "^"); /* Ridisegno cannone laser colpito */
+	//scudo--;
+	//}
 
 	/* Esce quando terminano le possibili collisioni */
-	if(scudo <1) collision =1;
+	//if(scudo <1) collision =1;
 
 
 	}while (!collision);
